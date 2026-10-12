@@ -24,3 +24,22 @@ Working notes from the backend build. Questions for the supervisor are at the en
 - Every route is protected by a global guard by default. Only routes marked `@Public()` skip it (`register`, `login`, `refresh`, and later the public booking routes).
 - Throttling: 120 requests/min per IP by default, 10/min on register and login, and 30/min on public booking routes (applied in step 5). Limits are skipped when `NODE_ENV=test`; `throttling.e2e-spec.ts` re-enables them for its own run.
 - Prisma's agent guard blocks `prisma migrate reset`, so the e2e global setup runs the non-destructive `migrate deploy` and each test truncates tables instead. The guard was not overridden.
+
+## Owner setup (business, services, staff, hours, time off)
+
+Response shapes the frontend should rely on:
+
+- `GET /business` returns 404 `Business not found` until the owner creates one. `POST` returns 201, `PATCH` returns 200, both with the same business view.
+- Service view: `{id,name,description,durationMinutes,bufferMinutes,priceCents,currency,active}`. `GET /services` is a plain array sorted by name, not paginated. `DELETE` returns 204 and either hard-deletes the service or sets `active=false` when it has bookings.
+- Staff view: `{id,name,title,active,serviceIds,services:[{id,name}],hours:[{weekday,startMinute,endMinute}]}`. `serviceIds` and `services` describe the same assignments. `GET /staff` is a plain array sorted by name.
+- `PUT /staff/:id/hours` replaces every window and returns 200 `{hours}`. Windows on one weekday may touch but not overlap; an empty list is allowed.
+- `POST /staff/:id/time-off` returns 201 with `{id,staffId,startsAt,endsAt,reason}`.
+
+Interpretations (the contract is silent on these):
+
+- Name, slug, timezone, minNotice and maxAdvance are non-nullable, so PATCH rejects `null` for them. Description, phone and address accept `null` to clear.
+- Slug rules: 3-60 characters of lowercase letters, digits and single hyphens. Auto-generated slugs add a random suffix when the base is taken.
+- Buffer is 0-240 minutes. Duration is 5-480 in multiples of 5. Currency is a 3-letter code and defaults to USD.
+- Staff with bookings is deactivated on delete, not removed. Staff with no bookings is removed, and its hours and time off cascade with it.
+- Time-off conflicts use the same window as booking overlap: a confirmed booking blocks `[startsAt, blockedUntil)`. `?force=true` creates the time off and leaves bookings unchanged.
+- Owner isolation: every lookup filters by the owner's business id, so another owner's record returns 404 (`Service not found`, `Staff member not found`, `Time off not found`).

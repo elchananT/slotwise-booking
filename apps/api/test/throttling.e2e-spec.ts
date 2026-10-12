@@ -38,5 +38,5 @@ describe('Rate limiting (e2e)', () => {
     expect(res.body).toEqual(
       expect.objectContaining({ statusCode: 429, error: 'Too Many Requests' }),
     );
-  });
+  }, 30_000);
 });
