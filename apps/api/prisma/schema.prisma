@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model Owner {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String
+  passwordHash     String
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  business         Business?
+}
+
+model Business {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique // public page: /b/<slug>
+  description      String?
+  timezone         String // e.g. "Asia/Jerusalem"
+  phone            String?
+  address          String?
+  minNoticeMinutes Int       @default(120) // cannot book sooner than this
+  maxAdvanceDays   Int       @default(60)
+  ownerId          String    @unique
+  owner            Owner     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  services         Service[]
+  staff            Staff[]
+  bookings         Booking[]
+}
+
+model Service {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?
+  durationMinutes Int // 5..480, multiple of 5
+  bufferMinutes   Int            @default(0) // blocked after the appointment
+  priceCents      Int
+  currency        String         @default("USD")
+  active          Boolean        @default(true)
+  businessId      String
+  business        Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  staff           StaffService[]
+  bookings        Booking[]
+}
+
+model Staff {
+  id         String         @id @default(cuid())
+  name       String
+  title      String?
+  active     Boolean        @default(true)
+  businessId String
+  business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  services   StaffService[]
+  hours      WorkingHours[]
+  timeOff    TimeOff[]
+  bookings   Booking[]
+}
+
+model StaffService {
+  staffId   String
+  serviceId String
+  staff     Staff   @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([staffId, serviceId])
+}
+
+model WorkingHours {
+  id          String @id @default(cuid())
+  staffId     String
+  weekday     Int // 0=Sunday .. 6=Saturday
+  startMinute Int // minutes from local midnight, e.g. 540 = 09:00
+  endMinute   Int // > startMinute, <= 1440. Multiple rows per weekday allowed (split shifts)
+  staff       Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model TimeOff {
+  id       String   @id @default(cuid())
+  staffId  String
+  startsAt DateTime
+  endsAt   DateTime
+  reason   String?
+  staff    Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  reference     String        @unique // short human code, e.g. "SW-7K3Q9D"
+  manageToken   String        @unique // long random, used by customer to view/cancel/reschedule
+  status        BookingStatus @default(CONFIRMED)
+  startsAt      DateTime
+  endsAt        DateTime // startsAt + service.duration (buffer is NOT included here)
+  blockedUntil  DateTime // endsAt + service.buffer; used for overlap checks
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  notes         String?
+  businessId    String
+  serviceId     String
+  staffId       String
+  createdAt     DateTime      @default(now())
+  business      Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service       Service       @relation(fields: [serviceId], references: [id])
+  staff         Staff         @relation(fields: [staffId], references: [id])
+
+  @@index([staffId, startsAt])
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  to         String
+  subject    String
+  body       String
+  businessId String
+  createdAt  DateTime @default(now())
+}
