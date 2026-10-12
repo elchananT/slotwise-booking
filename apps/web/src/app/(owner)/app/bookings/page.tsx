@@ -66,7 +66,7 @@ export default function BookingsPage() {
 
   return (
     <>
-      <PageHeader title="Bookings" subtitle="Every appointment, newest customers and oldest history alike. Click a row for details and actions." />
+      <PageHeader title="Bookings" subtitle="Every appointment, past and upcoming. Click a row for details and actions." />
 
       <div className="surface mb-6 flex flex-col gap-4 p-5">
         <div className="flex flex-wrap items-center gap-3">

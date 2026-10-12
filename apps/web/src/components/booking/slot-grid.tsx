@@ -57,9 +57,9 @@ export function SlotGrid({
 }) {
   if (loading) {
     return (
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4" aria-busy aria-label="Loading times">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(5.6rem,1fr))] gap-2" aria-busy aria-label="Loading times">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 rounded-full" />
+          <Skeleton key={i} className="h-11 rounded-full" />
         ))}
       </div>
     );
@@ -73,7 +73,7 @@ export function SlotGrid({
         return (
           <section key={part.key} aria-label={part.label}>
             <h4 className="mb-2 font-sans text-sm font-medium text-ink-2">{part.label}</h4>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(5.6rem,1fr))] gap-2">
               {list.map((s, i) => {
                 const isSel = selected === s.start;
                 return (
@@ -86,7 +86,7 @@ export function SlotGrid({
                     transition={{ duration: 0.3, delay: Math.min(i, 12) * 0.018, ease: [0.16, 1, 0.3, 1] }}
                     onClick={() => onSelect(s)}
                     className={cn(
-                      "h-12 rounded-full border text-[0.95rem] tnum transition-[background-color,border-color,color,box-shadow] duration-200",
+                      "h-11 rounded-full border text-[0.9rem] whitespace-nowrap tnum transition-[background-color,border-color,color,box-shadow] duration-200",
                       isSel
                         ? "border-brand bg-brand font-semibold text-on-brand shadow-[0_6px_14px_-6px_rgb(217_96_59/0.8)]"
                         : "border-line-strong bg-paper text-ink hover:border-teal-fg hover:bg-teal-soft",

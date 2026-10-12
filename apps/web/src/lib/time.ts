@@ -39,7 +39,7 @@ export function nowIn(zone: string) {
 export function zoneLabel(zone: string, at?: DateTime) {
   const dt = (at ?? DateTime.now()).setZone(zone);
   const city = zone.split("/").pop()?.replace(/_/g, " ") ?? zone;
-  return `${city} time (${dt.toFormat("ZZZZ")}, GMT${dt.toFormat("Z")})`;
+  return `${city} time (GMT${dt.toFormat("Z")})`;
 }
 
 export function fmtTime(iso: string, zone: string) {

@@ -4,6 +4,12 @@ export function staffColor(index: number) {
   return PALETTE[((index % PALETTE.length) + PALETTE.length) % PALETTE.length]!;
 }
 
+/** Stable colour per person: by position in the (name-sorted) staff list, falling back to a hash. */
+export function colorOf(list: Array<{ id: string }>, id: string) {
+  const i = list.findIndex((s) => s.id === id);
+  return staffColor(i >= 0 ? i : hashIndex(id));
+}
+
 export function hashIndex(id: string) {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;

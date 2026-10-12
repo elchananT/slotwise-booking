@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { initials } from "@/lib/format";
-import { hashIndex, staffColor } from "@/lib/staff-colors";
+import { colorOf } from "@/lib/staff-colors";
 import { DateTime, inZone, nowIn, weekStart } from "@/lib/time";
 import type { Booking, Staff } from "@/lib/types";
 import { useMediaQuery } from "@/lib/use-media";
@@ -56,8 +56,8 @@ export default function CalendarPage() {
 
   // visible hour range
   const [lo, hi] = useMemo(() => {
-    let a = 8;
-    let b = 19;
+    let a = 9;
+    let b = 18;
     for (const bk of bookings) {
       const s = inZone(bk.startsAt, zone);
       const e = inZone(bk.endsAt, zone);
@@ -105,7 +105,7 @@ export default function CalendarPage() {
         <div className="flex flex-wrap items-center gap-2">
           {staff.map((s) => {
             const on = !hidden.includes(s.id);
-            const color = staffColor(hashIndex(s.id));
+            const color = colorOf(staff, s.id);
             return (
               <button
                 key={s.id}
@@ -171,7 +171,7 @@ export default function CalendarPage() {
                     </div>
                     <div className="mt-1.5 flex" aria-hidden>
                       {lanes.map((s) => (
-                        <span key={s.id} className="flex-1 text-center text-[0.65rem] font-semibold" style={{ color: staffColor(hashIndex(s.id)) }}>
+                        <span key={s.id} className="flex-1 text-center text-[0.65rem] font-semibold" style={{ color: colorOf(staff, s.id) }}>
                           {initials(s.name)}
                         </span>
                       ))}
@@ -258,7 +258,7 @@ function DayColumn({
         if (lane < 0) return null;
         const top = (startMin / 60 - lo) * ROW;
         const height = Math.max(24, ((endMin - startMin) / 60) * ROW - 2);
-        const color = staffColor(hashIndex(b.staffId));
+        const color = colorOf(staff, b.staffId);
         const cancelled = b.status === "CANCELLED";
         const done = b.status === "COMPLETED" || b.status === "NO_SHOW";
         const label = `${s.toFormat("h:mm a")}, ${b.customerName}, ${bookingService(b, services)?.name ?? "service"} with ${bookingStaffName(b, staff)}, ${b.status.toLowerCase().replace("_", " ")}`;

@@ -5,7 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { errorMessage } from "@/lib/format";
-import { hashIndex, staffColor } from "@/lib/staff-colors";
+import { colorOf } from "@/lib/staff-colors";
 import { DateTime, fmtDateTime } from "@/lib/time";
 import type { Service, Staff, TimeOff } from "@/lib/types";
 import { useQuery } from "@/lib/use-query";
@@ -65,7 +65,7 @@ export default function StaffPage() {
         />
       ) : (
         <div className="grid items-start gap-6 lg:grid-cols-[17rem_minmax(0,1fr)] xl:gap-10">
-          <ul className="scroll-thin -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0" aria-label="Staff members">
+          <ul className="scroll-thin -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:sticky lg:top-6 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0" aria-label="Staff members">
             {staff.map((s) => (
               <li key={s.id} className="shrink-0 lg:shrink">
                 <button
@@ -77,7 +77,7 @@ export default function StaffPage() {
                     s.id === active.id ? "border-ink bg-paper shadow-sm" : "border-line hover:bg-sunken",
                   )}
                 >
-                  <Avatar name={s.name} color={staffColor(hashIndex(s.id))} className="size-10 text-sm" />
+                  <Avatar name={s.name} color={colorOf(staff, s.id)} className="size-10 text-sm" />
                   <span className="min-w-0">
                     <span className="block truncate font-medium">{s.name}</span>
                     <span className="block truncate text-xs text-ink-2">{s.active ? s.title || "Staff" : "Inactive"}</span>
@@ -86,7 +86,7 @@ export default function StaffPage() {
               </li>
             ))}
           </ul>
-          <StaffPanel key={active.id} staff={active} services={svcQ.data ?? []} onChanged={staffQ.refetch} />
+          <StaffPanel key={active.id} staff={active} all={staff} services={svcQ.data ?? []} onChanged={staffQ.refetch} />
         </div>
       )}
 
@@ -162,7 +162,7 @@ function NewStaff({ services, onDone, onCancel }: { services: Service[]; onDone:
   );
 }
 
-function StaffPanel({ staff, services, onChanged }: { staff: Staff; services: Service[]; onChanged: () => void }) {
+function StaffPanel({ staff, all, services, onChanged }: { staff: Staff; all: Staff[]; services: Service[]; onChanged: () => void }) {
   const { business } = useAuth();
   const toast = useToast();
   const zone = business?.timezone ?? "UTC";
@@ -221,7 +221,7 @@ function StaffPanel({ staff, services, onChanged }: { staff: Staff; services: Se
     <div className="flex min-w-0 flex-col gap-6">
       <form onSubmit={saveDetails} noValidate className="surface p-6 sm:p-8">
         <div className="mb-6 flex items-center gap-4">
-          <Avatar name={staff.name} color={staffColor(hashIndex(staff.id))} className="size-14 text-lg" />
+          <Avatar name={staff.name} color={colorOf(all, staff.id)} className="size-14 text-lg" />
           <h2 className="text-3xl">{staff.name}</h2>
         </div>
         <div className="grid gap-5 sm:grid-cols-2">
@@ -260,7 +260,7 @@ function StaffPanel({ staff, services, onChanged }: { staff: Staff; services: Se
             <h2 id="hours-h" className="text-2xl">
               Weekly hours
             </h2>
-            <p className="text-sm text-ink-2">In {zone.replace(/_/g, " ")} time. Gaps in the day become breaks.</p>
+            <p className="text-sm text-ink-2">In {zone.split("/").pop()?.replace(/_/g, " ")} time. Gaps in the day become breaks.</p>
           </div>
           <Button onClick={saveHours} loading={savingHours} disabled={!hoursDirty}>
             Save hours

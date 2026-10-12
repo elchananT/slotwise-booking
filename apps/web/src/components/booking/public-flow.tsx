@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { duration, errorMessage, money } from "@/lib/format";
-import { hashIndex, staffColor } from "@/lib/staff-colors";
+import { colorOf } from "@/lib/staff-colors";
 import { fmtDateLong, fmtTime } from "@/lib/time";
 import type { AvailabilitySlot, CreatedBooking, PublicBusiness, PublicStaff, Service } from "@/lib/types";
 import { useQuery } from "@/lib/use-query";
@@ -28,7 +28,7 @@ export function PublicFlow({ slug }: { slug: string }) {
 
   return (
     <div className="relative min-h-dvh">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[34rem] overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, black 55%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent)" }}>
         <div className="absolute -top-40 -left-32 size-[34rem] rounded-full" style={{ background: "radial-gradient(closest-side, color-mix(in srgb, var(--terracotta) 22%, transparent), transparent)" }} />
         <div className="absolute -top-52 right-0 size-[38rem] rounded-full" style={{ background: "radial-gradient(closest-side, color-mix(in srgb, var(--teal) 18%, transparent), transparent)" }} />
       </div>
@@ -181,7 +181,7 @@ function Flow({ data, slug }: { data: PublicBusiness; slug: string }) {
         </nav>
       )}
 
-      <div className={cn("mt-8 grid gap-8", step !== "done" && "lg:grid-cols-[minmax(0,1fr)_23rem] lg:gap-12")}>
+      <div className={cn("mt-8 grid gap-8", step !== "done" && "lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-10")}>
         <div className="min-w-0">
           <AnimatePresence mode="wait" initial={false} custom={dir}>
             <motion.section
@@ -375,7 +375,7 @@ function StaffStep({
             <span className="relative grid h-12 w-[4.25rem] shrink-0 place-items-center" aria-hidden>
               {list.slice(0, 3).map((p, i) => (
                 <span key={p.id} className="absolute" style={{ left: i * 14 }}>
-                  <Avatar name={p.name} color={staffColor(hashIndex(p.id))} className="size-10 border-2 border-paper text-xs" />
+                  <Avatar name={p.name} color={colorOf(list, p.id)} className="size-10 border-2 border-paper text-xs" />
                 </span>
               ))}
             </span>
@@ -396,7 +396,7 @@ function StaffStep({
                 pro?.id === p.id ? "border-brand" : "border-line",
               )}
             >
-              <Avatar name={p.name} color={staffColor(hashIndex(p.id))} className="size-14 text-lg" />
+              <Avatar name={p.name} color={colorOf(list, p.id)} className="size-14 text-lg" />
               <span>
                 <span className="display block text-xl">{p.name}</span>
                 {p.title && <span className="text-ink-2">{p.title}</span>}

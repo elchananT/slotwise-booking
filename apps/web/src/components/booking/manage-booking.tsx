@@ -39,7 +39,7 @@ export function ManageBooking({ token }: { token: string }) {
 
   return (
     <div className="relative min-h-dvh">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] overflow-hidden">
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] overflow-hidden" style={{ maskImage: "linear-gradient(to bottom, black 55%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, black 55%, transparent)" }}>
         <div className="absolute -top-40 left-1/2 size-[44rem] -translate-x-1/2 rounded-full" style={{ background: "radial-gradient(closest-side, color-mix(in srgb, var(--teal) 16%, transparent), transparent)" }} />
       </div>
       <div className="relative mx-auto max-w-xl px-4 pb-20 sm:px-6">

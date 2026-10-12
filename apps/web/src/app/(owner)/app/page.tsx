@@ -4,7 +4,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money } from "@/lib/format";
-import { hashIndex, staffColor } from "@/lib/staff-colors";
+import { colorOf } from "@/lib/staff-colors";
 import { nowIn } from "@/lib/time";
 import { useQuery } from "@/lib/use-query";
 import { PageHeader } from "@/components/app/app-shell";
@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const toast = useToast();
   const q = useQuery(() => api.dashboard(), []);
   const svc = useQuery(() => api.services.list(), []);
+  const staffQ = useQuery(() => api.staff.list(), []);
   const currency = svc.data?.[0]?.currency ?? "USD";
   const zone = business!.timezone;
   const todayIso = nowIn(zone).toISODate()!;
@@ -114,8 +115,8 @@ export default function DashboardPage() {
                     key: s.staffId,
                     label: s.name,
                     value: Math.round(s.percent),
-                    color: staffColor(hashIndex(s.staffId)),
-                    lead: <Avatar name={s.name} color={staffColor(hashIndex(s.staffId))} className="size-7 text-[0.65rem]" />,
+                    color: colorOf(staffQ.data ?? [], s.staffId),
+                    lead: <Avatar name={s.name} color={colorOf(staffQ.data ?? [], s.staffId)} className="size-7 text-[0.65rem]" />,
                   }))}
                 />
               ) : (

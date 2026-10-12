@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import { duration, errorMessage, money, slugify } from "@/lib/format";
 import { allZones, browserZone } from "@/lib/time";
 import type { Service, Staff } from "@/lib/types";
-import { hashIndex, staffColor } from "@/lib/staff-colors";
+import { colorOf } from "@/lib/staff-colors";
 import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/avatar";
 import { Button, LinkButton } from "@/components/ui/button";
@@ -366,7 +366,7 @@ function StaffStep({
         <ul className="mb-8 flex flex-wrap gap-3">
           {staff.map((s) => (
             <li key={s.id} className="flex items-center gap-3 rounded-full border border-line bg-paper py-2 pr-5 pl-2">
-              <Avatar name={s.name} color={staffColor(hashIndex(s.id))} className="size-9 text-sm" />
+              <Avatar name={s.name} color={colorOf(staff, s.id)} className="size-9 text-sm" />
               <span className="font-medium">{s.name}</span>
             </li>
           ))}

@@ -53,7 +53,7 @@ export function DateTimePicker({ slug, serviceId, staffId, timezone, maxAdvanceD
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-10">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,20.5rem)_minmax(0,1fr)] lg:gap-10">
       <div>
         {monthQ.error ? (
           <ErrorState message={monthQ.error} onRetry={monthQ.refetch} />
