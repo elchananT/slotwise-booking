@@ -195,10 +195,7 @@ export const api = {
     register: (b: { email: string; name: string; password: string }) =>
       request<AuthResponse>("/auth/register", { method: "POST", body: b }),
     login: (b: { email: string; password: string }) => request<AuthResponse>("/auth/login", { method: "POST", body: b }),
-    logout: () => {
-      const refreshToken = tokenStore.getRefresh();
-      return authed<void>("/auth/logout", { method: "POST", body: { refreshToken } });
-    },
+    logout: () => authed<void>("/auth/logout", { method: "POST" }),
     me: async (): Promise<Me> => {
       // Contract: "owner + business (or null)" — accept flat or nested.
       const raw = await authed<(Owner & { business?: Business | null }) | { owner: Owner; business?: Business | null }>(
