@@ -9,9 +9,9 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentOwner } from '../common/decorators/current-owner.decorator';
+import { AUTH_THROTTLE } from '../common/throttling';
 import { Public } from '../common/decorators/public.decorator';
 import type { AuthenticatedOwner } from './auth.types';
-import { THROTTLE_AUTH } from './auth.constants';
 import type { MeView } from './auth.service';
 import { AuthService } from './auth.service';
 import type { AuthResponseDto, TokenPairDto } from './dto/auth-response.dto';
@@ -25,14 +25,14 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
-  @Throttle(THROTTLE_AUTH)
+  @Throttle(AUTH_THROTTLE)
   @Post('register')
   register(@Body() dto: RegisterDto): Promise<AuthResponseDto> {
     return this.auth.register(dto);
   }
 
   @Public()
-  @Throttle(THROTTLE_AUTH)
+  @Throttle(AUTH_THROTTLE)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() dto: LoginDto): Promise<AuthResponseDto> {

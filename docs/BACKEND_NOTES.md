@@ -43,3 +43,20 @@ Interpretations (the contract is silent on these):
 - Staff with bookings is deactivated on delete, not removed. Staff with no bookings is removed, and its hours and time off cascade with it.
 - Time-off conflicts use the same window as booking overlap: a confirmed booking blocks `[startsAt, blockedUntil)`. `?force=true` creates the time off and leaves bookings unchanged.
 - Owner isolation: every lookup filters by the owner's business id, so another owner's record returns 404 (`Service not found`, `Staff member not found`, `Time off not found`).
+
+## Availability engine
+
+- `src/availability/availability.engine.ts` is pure: it takes hours, time off, confirmed bookings and `now` as arguments and does no I/O. `availability.engine.spec.ts` (13 unit tests) covers simple days, split shifts, buffers after bookings and on the new appointment, time off, minimum notice, max advance, shared starts, and spring-forward days in Asia/Jerusalem (2030-03-29) and America/New_York (2030-03-10).
+- `availability.service.ts` loads the schedules from Prisma. `public-availability.e2e-spec.ts` runs the same paths through the HTTP routes.
+
+Interpretations:
+
+- A candidate is blocked over `[start, start + duration + buffer)`. Time off and confirmed bookings are tested against that whole range, so buffers apply to time off as well as to bookings.
+- Candidate starts are every 15 minutes from each window's start, and the service must end by the window end.
+- Minimum notice is inclusive: a start exactly `minNoticeMinutes` after now is offered.
+- Max advance is measured in business-local calendar days from now, inclusive.
+- Windows are converted through local wall-clock minutes. A nonexistent local time (the spring-forward gap) shifts forward, as Luxon does.
+- `staffIds` are ordered by staff name. The contract does not specify an order.
+- Public responses: `GET /public/:slug` is `{business, services, staff}` with active items only; `staff[].serviceIds` lists active services only. Availability is `{date, timezone, slots:[{start, staffIds}]}`, and the month route is `{days:[{date, available}]}`, both as in the contract.
+- An unknown or inactive service, an unknown business, or a staff member who is inactive or does not offer the service returns 404.
+- Public routes are throttled at 30 requests/min per IP (`PUBLIC_THROTTLE`).
