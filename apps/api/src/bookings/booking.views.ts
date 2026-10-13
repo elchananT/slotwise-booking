@@ -38,6 +38,8 @@ export interface OwnerBookingView {
   id: string;
   reference: string;
   status: BookingStatus;
+  serviceId: string;
+  staffId: string;
   startsAt: Date;
   endsAt: Date;
   customerName: string;
@@ -54,6 +56,8 @@ export function toOwnerBookingView(booking: FullBooking): OwnerBookingView {
     id: booking.id,
     reference: booking.reference,
     status: booking.status,
+    serviceId: booking.serviceId,
+    staffId: booking.staffId,
     startsAt: booking.startsAt,
     endsAt: booking.endsAt,
     customerName: booking.customerName,
@@ -70,6 +74,8 @@ export function toOwnerBookingView(booking: FullBooking): OwnerBookingView {
 export interface BookingDetailsView {
   reference: string;
   status: BookingStatus;
+  serviceId: string;
+  staffId: string;
   startsAt: Date;
   endsAt: Date;
   customerName: string;
@@ -100,6 +106,8 @@ export function toBookingDetailsView(
   return {
     reference: booking.reference,
     status: booking.status,
+    serviceId: booking.serviceId,
+    staffId: booking.staffId,
     startsAt: booking.startsAt,
     endsAt: booking.endsAt,
     customerName: booking.customerName,

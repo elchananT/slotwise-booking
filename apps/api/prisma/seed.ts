@@ -379,7 +379,11 @@ async function seedBookings(
     const customerName = pick(random, CUSTOMERS);
     const reference = generateReference(random, taken);
     const customerEmail = `${customerName.toLowerCase().replace(/[^a-z]+/g, '.')}@example.com`;
+    const createdAt = new Date(
+      Math.min(startsAt.minus({ days: 2 }).toMillis(), now.toMillis()),
+    );
     rows.push({
+      createdAt,
       reference,
       manageToken: randomBytes(32).toString('base64url'),
       status,
@@ -398,7 +402,7 @@ async function seedBookings(
       to: customerEmail,
       subject: `Your booking ${reference} is confirmed`,
       body: `Hi ${customerName}, your ${service.name} with ${member.name} is confirmed. Reference: ${reference}.`,
-      createdAt: startsAt.toJSDate(),
+      createdAt,
     });
   }
 

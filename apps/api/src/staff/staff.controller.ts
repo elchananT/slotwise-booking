@@ -73,6 +73,14 @@ export class StaffController {
     return this.staff.setHours(owner.id, id, dto);
   }
 
+  @Get(':id/time-off')
+  listTimeOff(
+    @CurrentOwner() owner: AuthenticatedOwner,
+    @Param('id') id: string,
+  ): Promise<TimeOffView[]> {
+    return this.timeOff.list(owner.id, id);
+  }
+
   @Post(':id/time-off')
   createTimeOff(
     @CurrentOwner() owner: AuthenticatedOwner,

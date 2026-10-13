@@ -59,6 +59,16 @@ export class TimeOffService {
     return toTimeOffView(timeOff);
   }
 
+  async list(ownerId: string, staffId: string): Promise<TimeOffView[]> {
+    const { id: businessId } = await this.business.getForOwner(ownerId);
+    await requireStaffInBusiness(this.prisma, businessId, staffId);
+    const entries = await this.prisma.timeOff.findMany({
+      where: { staffId },
+      orderBy: { startsAt: 'asc' },
+    });
+    return entries.map(toTimeOffView);
+  }
+
   async remove(ownerId: string, timeOffId: string): Promise<void> {
     const { id: businessId } = await this.business.getForOwner(ownerId);
     const timeOff = await this.prisma.timeOff.findFirst({

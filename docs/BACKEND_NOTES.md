@@ -271,3 +271,69 @@ no server process
 ```
 
 Summary: build, lint, 21 unit tests, 40 e2e tests all green. The seed gives the same counts on both runs. The public flow returns 201, 200, 200 (create, fetch by manage token, cancel).
+
+## Contract additions and fixes (round 2, requested by the supervisor)
+
+Requested after the frontend build found deviations from the contract. All changes are additive, so existing fields are unchanged.
+
+- **Flat ids on bookings.** Owner list and detail, public create, manage view, and reschedule responses now include `serviceId` and `staffId` alongside the nested `service` and `staff` objects.
+- **Time off listing (contract addition, requested by the supervisor).** `GET /staff/:id/time-off` returns that staff member's time-off entries (`{id,staffId,startsAt,endsAt,reason}`), sorted by start. It is owner-authenticated and owner-isolated (404 for another owner's staff). `POST /services` is unchanged.
+- **Seed timestamps.** EmailLog and booking `createdAt` are derived from each booking's start (2 days earlier), clamped to the seed time. No row is dated in the future (checked with SQL on the dev DB: 0 future rows). The seed was re-run on the dev DB (`slotwise`), twice, with identical counts. The e2e database was not touched.
+
+### Verification (round 2)
+
+```text
+$ npm run build
+
+> api@0.0.1 build
+> nest build
+
+exit=0
+
+$ npm run lint
+
+> api@0.0.1 lint
+> eslint "{src,test,prisma}/**/*.ts"
+
+exit=0
+
+$ npm test
+
+> api@0.0.1 test
+> jest
+
+
+Test Suites: 3 passed, 3 total
+Tests:       21 passed, 21 total
+Snapshots:   0 total
+Time:        0.199 s, estimated 1 s
+Ran all test suites.
+exit=0
+
+$ npm run test:e2e
+
+> api@0.0.1 test:e2e
+> jest --config ./test/jest-e2e.json --runInBand
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "slotwise_test", schema "public" at "localhost:5442"
+
+1 migration found in prisma/migrations
+
+
+No pending migrations to apply.
+
+Test Suites: 6 passed, 6 total
+Tests:       40 passed, 40 total
+Snapshots:   0 total
+Time:        15.817 s, estimated 17 s
+Ran all test suites.
+exit=0
+
+```
+
+Summary: build, lint, 21 unit tests and 40 e2e tests all green.

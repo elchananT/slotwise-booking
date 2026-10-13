@@ -24,6 +24,8 @@ interface StatusBody {
   reference: string;
   status: string;
   manageToken?: string;
+  serviceId: string;
+  staffId: string;
   canChange: boolean;
   startsAt: string;
   staff: { id: string; name: string };
@@ -34,6 +36,8 @@ interface OwnerBookingBody {
   status: string;
   staff: { id: string };
   customerName: string;
+  serviceId: string;
+  staffId: string;
 }
 
 interface PageBody {
@@ -130,6 +134,8 @@ describe('Bookings (e2e)', () => {
     const created = await bookOk(at(day, '10:00'), benId);
 
     expect(created.reference).toMatch(/^SW-[A-Z2-9]{6}$/);
+    expect(created.staffId).toBe(benId);
+    expect(created.serviceId).toBe(cutId);
     expect(created.status).toBe('CONFIRMED');
     expect(created.manageToken!.length).toBeGreaterThanOrEqual(32);
     expect(created.canChange).toBe(true);
@@ -187,6 +193,10 @@ describe('Bookings (e2e)', () => {
       .get(`/api/v1/public/bookings/${created.manageToken!}`)
       .expect(200);
     expect(bodyOf<StatusBody>(shown).reference).toBe(created.reference);
+    expect(bodyOf<StatusBody>(shown)).toMatchObject({
+      serviceId: cutId,
+      staffId: benId,
+    });
 
     await http()
       .post(`/api/v1/public/bookings/${created.manageToken!}/cancel`)
@@ -288,6 +298,8 @@ describe('Bookings (e2e)', () => {
     expect(body1.total).toBe(3);
     expect(body1.items).toHaveLength(2);
     expect(body1.items[0].customerName).toBe('Dana Customer');
+    expect(body1.items[0].serviceId).toBe(cutId);
+    expect(typeof body1.items[0].staffId).toBe('string');
 
     const cancelled = await asOwner(
       http().get('/api/v1/bookings?status=CANCELLED'),

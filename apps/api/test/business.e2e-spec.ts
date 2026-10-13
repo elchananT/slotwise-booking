@@ -323,6 +323,17 @@ describe('Business setup (e2e)', () => {
           endsAt: '2030-01-02T10:00:00Z',
         })
         .expect(404);
+      const aliceTimeOffList = await asOwner(
+        http().get(`/api/v1/staff/${aliceStaff.id}/time-off`),
+        alice,
+      ).expect(200);
+      expect(
+        bodyOf<{ id: string }[]>(aliceTimeOffList).map((entry) => entry.id),
+      ).toEqual([aliceTimeOff]);
+      await asOwner(
+        http().get(`/api/v1/staff/${aliceStaff.id}/time-off`),
+        bob,
+      ).expect(404);
       await asOwner(
         http().delete(`/api/v1/time-off/${aliceTimeOff}`),
         bob,
