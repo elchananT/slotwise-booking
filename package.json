@@ -1,0 +1,15 @@
+{
+  "name": "slotwise-booking",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "install:all": "npm ci --prefix apps/api && npm ci --prefix apps/web",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "dev:api": "npm run start:dev --prefix apps/api",
+    "dev:web": "npm run dev --prefix apps/web",
+    "build": "npm run build --prefix apps/api && npm run build --prefix apps/web",
+    "test": "npm test --prefix apps/api",
+    "test:e2e": "npm run test:e2e --prefix apps/api"
+  }
+}
