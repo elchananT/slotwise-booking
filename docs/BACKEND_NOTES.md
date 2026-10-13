@@ -101,3 +101,9 @@ Open questions for the supervisor:
 - `utilizationByStaff`: for each active staff member, booked minutes over the same 30 days divided by working minutes from the weekly hours. Time off is not subtracted. Capped at 100 and reported as 0 when there are no working minutes.
 
 `GET /emails` (`src/emails`) is the owner's outbox: paginated, newest first, `{id,to,subject,body,createdAt}`.
+
+## Seed
+
+`npm run seed` runs `apps/api/prisma/seed.ts`. It creates the owner `owner@slotwise.dev` / `demo12345` and the business "Lumen Studio" (Asia/Jerusalem, ILS prices), with 4 services, 3 staff, one time-off block and 60 bookings in the 21 days before and after today. Each booking gets a confirmation email row.
+
+Idempotency: each run rebuilds the owner's business inside one transaction. It deletes the old email rows, bookings and business (the cascade takes services, staff, hours and time off) and recreates them. The schedule uses a seeded PRNG, and generated bookings never overlap a confirmed booking or time off. Running it twice gives identical counts (verified below). References and manage tokens change on each run.
