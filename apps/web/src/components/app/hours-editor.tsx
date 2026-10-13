@@ -199,7 +199,7 @@ export function HoursEditor({ initial, resetKey, onChange, disabled }: Props) {
       </p>
 
       <div className="overflow-x-auto">
-        <div className="min-w-[32rem]">
+        <div className="min-w-[20rem]">
           <div className="grid grid-cols-[3.25rem_repeat(7,minmax(0,1fr))] gap-x-1">
             <div />
             {WEEKDAYS_SHORT.map((w, d) => {

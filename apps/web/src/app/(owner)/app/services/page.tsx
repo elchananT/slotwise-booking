@@ -32,7 +32,7 @@ export default function ServicesPage() {
         }
       />
 
-      {q.loading ? (
+      {q.loading && !q.data ? (
         <div className="flex flex-col gap-3" aria-busy aria-label="Loading services">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-24 rounded-3xl" />

@@ -174,6 +174,12 @@ async function request<T>(path: string, opts: ReqOpts = {}): Promise<T> {
 
 const authed = <T>(path: string, opts: Omit<ReqOpts, "auth"> = {}) => request<T>(path, { ...opts, auth: true });
 
+/** The API nests service/staff and may omit the flat id columns; derive them so the UI can rely on both. */
+function normBooking<T extends { staffId?: string; serviceId?: string; staff?: { id: string }; service?: { id: string } }>(b: T): T {
+  if (!b) return b;
+  return { ...b, staffId: b.staffId ?? b.staff?.id, serviceId: b.serviceId ?? b.service?.id } as T;
+}
+
 /** Lists may come back bare or wrapped as { items }. */
 function asList<T>(x: T[] | { items: T[] }): T[] {
   return Array.isArray(x) ? x : (x?.items ?? []);
@@ -218,7 +224,7 @@ export const api = {
   },
   services: {
     list: async () => asList(await authed<Service[] | { items: Service[] }>("/services")),
-    create: (b: Omit<Service, "id">) => authed<Service>("/services", { method: "POST", body: b }),
+    create: (b: Omit<Service, "id" | "active"> & { active?: boolean }) => authed<Service>("/services", { method: "POST", body: b }),
     update: (id: string, b: Partial<Omit<Service, "id">>) => authed<Service>(`/services/${id}`, { method: "PATCH", body: b }),
     remove: (id: string) => authed<Service | void>(`/services/${id}`, { method: "DELETE" }),
   },
@@ -237,12 +243,15 @@ export const api = {
     remove: (id: string) => authed<void>(`/time-off/${id}`, { method: "DELETE" }),
   },
   bookings: {
-    list: (f: BookingFilters = {}) => authed<Paginated<Booking>>("/bookings", { query: { ...f } }),
-    get: (id: string) => authed<Booking>(`/bookings/${id}`),
-    setStatus: (id: string, status: BookingStatus) =>
-      authed<Booking>(`/bookings/${id}/status`, { method: "PATCH", body: { status } }),
-    reschedule: (id: string, b: { startsAt: string; staffId?: string }) =>
-      authed<Booking>(`/bookings/${id}/reschedule`, { method: "POST", body: b }),
+    list: async (f: BookingFilters = {}) => {
+      const res = await authed<Paginated<Booking>>("/bookings", { query: { ...f } });
+      return { ...res, items: res.items.map(normBooking) };
+    },
+    get: async (id: string) => normBooking(await authed<Booking>(`/bookings/${id}`)),
+    setStatus: async (id: string, status: BookingStatus) =>
+      normBooking(await authed<Booking>(`/bookings/${id}/status`, { method: "PATCH", body: { status } })),
+    reschedule: async (id: string, b: { startsAt: string; staffId?: string }) =>
+      normBooking(await authed<Booking>(`/bookings/${id}/reschedule`, { method: "POST", body: b })),
   },
   dashboard: () => authed<DashboardData>("/dashboard"),
   emails: async (): Promise<EmailLog[]> => asList(await authed<EmailLog[] | { items: EmailLog[] }>("/emails", { query: { pageSize: 100 } })),
@@ -252,12 +261,13 @@ export const api = {
       request<DayAvailability>(`/public/${encodeURIComponent(slug)}/availability`, { query: q, signal }),
     month: (slug: string, q: { serviceId: string; month: string; staffId?: string }, signal?: AbortSignal) =>
       request<MonthAvailability>(`/public/${encodeURIComponent(slug)}/availability/month`, { query: q, signal }),
-    book: (slug: string, b: CreateBookingInput) =>
-      request<CreatedBooking>(`/public/${encodeURIComponent(slug)}/bookings`, { method: "POST", body: b }),
-    booking: (token: string) => request<PublicBookingSummary>(`/public/bookings/${encodeURIComponent(token)}`),
-    cancel: (token: string) => request<PublicBookingSummary>(`/public/bookings/${encodeURIComponent(token)}/cancel`, { method: "POST" }),
-    reschedule: (token: string, b: { startsAt: string; staffId?: string }) =>
-      request<PublicBookingSummary>(`/public/bookings/${encodeURIComponent(token)}/reschedule`, { method: "POST", body: b }),
+    book: async (slug: string, b: CreateBookingInput) =>
+      normBooking(await request<CreatedBooking>(`/public/${encodeURIComponent(slug)}/bookings`, { method: "POST", body: b })),
+    booking: async (token: string) => normBooking(await request<PublicBookingSummary>(`/public/bookings/${encodeURIComponent(token)}`)),
+    cancel: async (token: string) =>
+      normBooking(await request<PublicBookingSummary>(`/public/bookings/${encodeURIComponent(token)}/cancel`, { method: "POST" })),
+    reschedule: async (token: string, b: { startsAt: string; staffId?: string }) =>
+      normBooking(await request<PublicBookingSummary>(`/public/bookings/${encodeURIComponent(token)}/reschedule`, { method: "POST", body: b })),
     icsUrl: (token: string) => `${API_URL}/public/bookings/${encodeURIComponent(token)}/ics`,
   },
 };

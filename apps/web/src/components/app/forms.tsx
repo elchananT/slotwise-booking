@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { InlineError } from "@/components/ui/feedback";
 import { Field, Input, Select, Switch, Textarea } from "@/components/ui/field";
 
-export type ServiceInput = Omit<Service, "id">;
+export type ServiceInput = Omit<Service, "id" | "active"> & { active?: boolean };
 const CURRENCIES = ["USD", "EUR", "GBP", "ILS", "CAD", "AUD"];
 
 export function ServiceForm({
@@ -57,7 +57,7 @@ export function ServiceForm({
         bufferMinutes: b,
         priceCents: Math.round(p * 100),
         currency,
-        active,
+        ...(initial ? { active } : {}),
       });
       if (!initial) {
         setName("");

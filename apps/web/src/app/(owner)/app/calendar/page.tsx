@@ -185,8 +185,8 @@ export default function CalendarPage() {
             <div className="grid" style={{ gridTemplateColumns: `3.25rem repeat(${shown.length}, minmax(0, 1fr))` }}>
               <div className="relative" style={{ height: (hi - lo) * ROW }} aria-hidden>
                 {Array.from({ length: hi - lo }, (_, i) => (
-                  <div key={i} className="absolute right-2 -translate-y-2 text-[0.7rem] text-ink-2 tnum" style={{ top: i * ROW }}>
-                    {i === 0 ? "" : DateTime.fromObject({ hour: lo + i }).toFormat("h a")}
+                  <div key={i} className={cn("absolute right-2 text-[0.7rem] text-ink-2 tnum", i === 0 ? "translate-y-1" : "-translate-y-2")} style={{ top: i * ROW }}>
+                    {DateTime.fromObject({ hour: lo + i }).toFormat("h a")}
                   </div>
                 ))}
               </div>

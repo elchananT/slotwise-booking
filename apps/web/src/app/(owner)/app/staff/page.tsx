@@ -43,7 +43,7 @@ export default function StaffPage() {
         }
       />
 
-      {staffQ.loading || svcQ.loading ? (
+      {(staffQ.loading && !staffQ.data) || (svcQ.loading && !svcQ.data) ? (
         <div className="grid gap-6 lg:grid-cols-[18rem_1fr]" aria-busy aria-label="Loading staff">
           <Skeleton className="h-72 rounded-3xl" />
           <Skeleton className="h-[40rem] rounded-3xl" />
