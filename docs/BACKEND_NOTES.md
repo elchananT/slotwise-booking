@@ -10,6 +10,7 @@ Working notes from the backend build. Questions for the supervisor are at the en
 - Configuration: `src/config/env.ts` loads `apps/api/.env` with `process.loadEnvFile` (already-set variables win). No `@nestjs/config` dependency.
 - `DATABASE_URL_TEST` (database `slotwise_test`, same Postgres server) is used only by the e2e suite, so the seeded demo database is never reset by tests.
 - `WEB_ORIGIN` (default `http://localhost:3102`) feeds the CORS origin.
+- `tsconfig.build.json` excludes `prisma/`, so the seed is not compiled into `dist/` and the server entry stays at `dist/main.js`.
 
 ## Data model
 
@@ -107,3 +108,166 @@ Open questions for the supervisor:
 `npm run seed` runs `apps/api/prisma/seed.ts`. It creates the owner `owner@slotwise.dev` / `demo12345` and the business "Lumen Studio" (Asia/Jerusalem, ILS prices), with 4 services, 3 staff, one time-off block and 60 bookings in the 21 days before and after today. Each booking gets a confirmation email row.
 
 Idempotency: each run rebuilds the owner's business inside one transaction. It deletes the old email rows, bookings and business (the cascade takes services, staff, hours and time off) and recreates them. The schedule uses a seeded PRNG, and generated bookings never overlap a confirmed booking or time off. Running it twice gives identical counts (verified below). References and manage tokens change on each run.
+
+## Verification
+
+One consistent run, captured with the server started from `dist/main.js`, the seed run twice, and the public flow over HTTP. The server was stopped afterwards.
+
+```text
+$ npm run build
+
+> api@0.0.1 build
+> nest build
+
+exit=0
+
+$ npm run lint
+
+> api@0.0.1 lint
+> eslint "{src,test,prisma}/**/*.ts"
+
+exit=0
+
+$ npm test
+
+> api@0.0.1 test
+> jest
+
+
+Test Suites: 3 passed, 3 total
+Tests:       21 passed, 21 total
+Snapshots:   0 total
+Time:        0.702 s, estimated 1 s
+Ran all test suites.
+exit=0
+
+$ npm run test:e2e
+
+> api@0.0.1 test:e2e
+> jest --config ./test/jest-e2e.json --runInBand
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+Datasource "db": PostgreSQL database "slotwise_test", schema "public" at "localhost:5442"
+
+1 migration found in prisma/migrations
+
+
+No pending migrations to apply.
+
+Test Suites: 6 passed, 6 total
+Tests:       40 passed, 40 total
+Snapshots:   0 total
+Time:        45.453 s
+Ran all test suites.
+exit=0
+
+$ node dist/main.js &  (server)
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +122ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +4ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAvailabilityModule dependencies initialized[39m[38;5;3m +14ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBusinessModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mServicesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStaffModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEmailsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDashboardModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPublicModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBookingsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +22ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/register, POST} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/refresh, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBusinessController {/api/v1/business}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/business, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/business, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/business, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mServicesController {/api/v1/services}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/services, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/services, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/services/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/services/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStaffController {/api/v1/staff}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/staff, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/staff, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/staff/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/staff/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/staff/:id/hours, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/staff/:id/time-off, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTimeOffController {/api/v1/time-off}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/time-off/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPublicController {/api/v1/public}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/:slug, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/:slug/availability, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/:slug/availability/month, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOwnerBookingsController {/api/v1/bookings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/bookings/:id/reschedule, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPublicBookingsController {/api/v1/public}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/:slug/bookings, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/bookings/:manageToken, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/bookings/:manageToken/cancel, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/bookings/:manageToken/reschedule, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/public/bookings/:manageToken/ics, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mEmailsController {/api/v1/emails}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/emails, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDashboardController {/api/v1/dashboard}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/dashboard, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 94338  - [39m13/10/2026, 7:19:11 am [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +17ms[39m
+$ npm run seed
+
+> api@0.0.1 seed
+> prisma db seed
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Running seed command `ts-node --transpile-only prisma/seed.ts` ...
+Seeded Lumen Studio (owner@slotwise.dev): {"services":4,"staff":3,"bookings":60,"emails":60}
+
+🌱  The seed command has been executed.
+exit=0
+
+$ npm run seed
+
+> api@0.0.1 seed
+> prisma db seed
+
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Environment variables loaded from .env
+Running seed command `ts-node --transpile-only prisma/seed.ts` ...
+Seeded Lumen Studio (owner@slotwise.dev): {"services":4,"staff":3,"bookings":60,"emails":60}
+
+🌱  The seed command has been executed.
+exit=0
+
+$ GET http://localhost:4002/api/v1/public/lumen-studio/availability?serviceId=<gel-manicure>&date=2026-10-15
+{"date":"2026-10-15","timezone":"Asia/Jerusalem","slots":[{"start":"2026-10-15T06:00:00.000Z","staffIds":["cmv6691j1000xzrvl1xgyw6r4"]},{"start":"2026-10-15T06:15:00.000Z","staffIds":["cmv6691j1000xzr
+$ POST http://localhost:4002/api/v1/public/lumen-studio/bookings  startsAt=2026-10-15T06:00:00.000Z
+{"reference":"SW-3JWZ4M","status":"CONFIRMED","startsAt":"2026-10-15T06:00:00.000Z","endsAt":"2026-10-15T06:45:00.000Z","customerName":"Curl Tester","customerEmail":"curl@example.com","customerPhone":
+HTTP 201
+$ GET http://localhost:4002/api/v1/public/bookings/<manageToken>
+{"reference":"SW-3JWZ4M","status":"CONFIRMED","startsAt":"2026-10-15T06:00:00.000Z","endsAt":"2026-10-15T06:45:00.000Z","customerName":"Curl Tester","customerEmail":"curl@example.com","customerPhone":
+HTTP 200
+$ POST http://localhost:4002/api/v1/public/bookings/<manageToken>/cancel
+{"reference":"SW-3JWZ4M","status":"CANCELLED","startsAt":"2026-10-15T06:00:00.000Z","endsAt":"2026-10-15T06:45:00.000Z","customerName":"Curl Tester","customerEmail":"curl@example.com","customerPhone":
+HTTP 200
+server stopped
+no server process
+```
+
+Summary: build, lint, 21 unit tests, 40 e2e tests all green. The seed gives the same counts on both runs. The public flow returns 201, 200, 200 (create, fetch by manage token, cancel).
