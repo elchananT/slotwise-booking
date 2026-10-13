@@ -60,3 +60,32 @@ Interpretations:
 - Public responses: `GET /public/:slug` is `{business, services, staff}` with active items only; `staff[].serviceIds` lists active services only. Availability is `{date, timezone, slots:[{start, staffIds}]}`, and the month route is `{days:[{date, available}]}`, both as in the contract.
 - An unknown or inactive service, an unknown business, or a staff member who is inactive or does not offer the service returns 404.
 - Public routes are throttled at 30 requests/min per IP (`PUBLIC_THROTTLE`).
+
+## Bookings
+
+Public (`src/bookings/public-bookings.controller.ts`, throttled 30/min/IP):
+
+- `POST /public/:slug/bookings` returns 201 with the booking view plus `manageToken` (43 random characters). References look like `SW-7K3Q9D` (no 0/O/1/I).
+- The create runs in a transaction. It takes a Postgres advisory lock on every eligible staff member (sorted), re-reads availability under the lock, then inserts. Two parallel requests for one slot and one staff member give exactly one 201 and one 409 (tested). Random reference collisions are retried.
+- With no `staffId`, the booking goes to the least busy eligible professional that day (fewest confirmed bookings; ties keep name order).
+- Customer routes: `GET bookings/:token`, `POST bookings/:token/cancel` and `POST bookings/:token/reschedule` return 200 with the details view. `GET bookings/:token/ics` returns `text/calendar` with an attachment filename.
+- Details view: `{reference,status,startsAt,endsAt,customerName,customerEmail,customerPhone,notes,service,staff,business,canChange}`. `canChange` is true while the booking is CONFIRMED and more than 2 hours away. It is an addition to the contract, used for the UI's button state.
+- Cancel and reschedule are refused within 2 hours of the start (409, constant `CANCELLATION_WINDOW_HOURS`). The contract only names cancel, so applying the same window to reschedule is a conservative reading.
+- A customer reschedule without `staffId` keeps the current professional. It goes through the same engine rules as creation, and the booking's own old slot is excluded from the conflict check.
+- Cancel is a conditional `updateMany` on `status=CONFIRMED`, so two simultaneous cancels produce one state change and one email.
+
+Owner (`src/bookings/owner-bookings.controller.ts`):
+
+- `GET /bookings` is paginated, sorted by `startsAt` ascending. Filters: `from`/`to` (YYYY-MM-DD in the business zone, both inclusive, or an instant), `staffId`, `status`, `q` (customer name, email or reference, case-insensitive).
+- `PATCH /bookings/:id/status` moves only CONFIRMED to COMPLETED, NO_SHOW or CANCELLED. Anything else is 409. Owner-set cancellation sends no email.
+- `POST /bookings/:id/reschedule` may ignore working hours and notice, but it rejects past starts, overlaps with confirmed bookings and time off (409).
+- Owner views omit `manageToken`.
+
+Emails: confirmation on create and cancellation on customer cancel, both recorded in `EmailLog` (`src/emails`). Reschedule sends no email, because the contract lists only those two.
+
+ICS: CRLF lines, folded at 75 characters, escaped text, `STATUS:CANCELLED` for cancelled bookings. `ics.spec.ts` covers it.
+
+Open questions for the supervisor:
+
+- Should a customer reschedule also write an EmailLog entry? The contract lists only confirmation and cancellation, so none is written.
+- Should the 2-hour window also apply to customer reschedules? It does here, as a conservative reading.

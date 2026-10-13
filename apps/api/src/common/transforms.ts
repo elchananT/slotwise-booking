@@ -6,3 +6,7 @@ export function trimLowercase({ value }: { value: unknown }): unknown {
 export function trimUppercase({ value }: { value: unknown }): unknown {
   return typeof value === 'string' ? value.trim().toUpperCase() : value;
 }
+
+export function trim({ value }: { value: unknown }): unknown {
+  return typeof value === 'string' ? value.trim() : value;
+}

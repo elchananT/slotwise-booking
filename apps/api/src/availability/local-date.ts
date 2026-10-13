@@ -20,3 +20,16 @@ export function parseLocalMonth(value: string, zone: string): DateTime {
   }
   return month.startOf('month');
 }
+
+/** The business-local day that contains an instant, as its date and [start, end) bounds. */
+export function localDayOf(
+  instant: Date,
+  zone: string,
+): { date: string; start: Date; end: Date } {
+  const start = DateTime.fromJSDate(instant, { zone }).startOf('day');
+  return {
+    date: start.toFormat('yyyy-MM-dd'),
+    start: start.toJSDate(),
+    end: start.plus({ days: 1 }).toJSDate(),
+  };
+}

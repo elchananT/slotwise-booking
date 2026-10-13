@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BookingStatus, Business, Service } from '@prisma/client';
+import { BookingStatus, Business, Prisma, Service } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { computeDaySlots } from './availability.engine';
 import {
@@ -12,6 +12,9 @@ import { parseLocalDate, parseLocalMonth } from './local-date';
 
 const DAY_MS = 24 * 60 * 60_000;
 
+/** Either the root client or a client inside an interactive transaction. */
+export type Db = Prisma.TransactionClient;
+
 export interface DayAvailability {
   date: string;
   available: boolean;
@@ -21,23 +24,27 @@ export interface DayAvailability {
 export class AvailabilityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async slotsForDate(
+  /**
+   * Bookable starts on one business-local day. Pass a transaction client and
+   * the result reflects the locks already held by that transaction.
+   */
+  slotsOnDay(
+    db: Db,
     business: Business,
     service: Service,
     date: string,
     staffId: string | undefined,
     now: Date,
+    excludeBookingId?: string,
   ): Promise<AvailableSlot[]> {
-    const day = parseLocalDate(date, business.timezone);
-    const schedules = await this.loadSchedules(
+    return this.computeSlots(
+      db,
       business,
       service,
+      date,
       staffId,
-      day.toMillis(),
-      day.plus({ days: 1 }).toMillis(),
-    );
-    return computeDaySlots(
-      engineInput(business, service, schedules, now, date),
+      now,
+      excludeBookingId,
     );
   }
 
@@ -50,6 +57,7 @@ export class AvailabilityService {
   ): Promise<DayAvailability[]> {
     const first = parseLocalMonth(month, business.timezone);
     const schedules = await this.loadSchedules(
+      this.prisma,
       business,
       service,
       staffId,
@@ -67,25 +75,63 @@ export class AvailabilityService {
     });
   }
 
+  /** Ids of the active staff who offer the service, sorted for a stable lock order. */
+  async eligibleStaffIds(
+    db: Db,
+    business: Business,
+    service: Service,
+    staffId: string | undefined,
+  ): Promise<string[]> {
+    const staff = await db.staff.findMany({
+      where: eligibleStaffWhere(business, service, staffId),
+      select: { id: true },
+    });
+    if (staffId !== undefined && staff.length === 0) {
+      throw new NotFoundException('Staff member not found');
+    }
+    return staff.map((member) => member.id).sort();
+  }
+
+  private async computeSlots(
+    db: Db,
+    business: Business,
+    service: Service,
+    date: string,
+    staffId: string | undefined,
+    now: Date,
+    excludeBookingId: string | undefined,
+  ): Promise<AvailableSlot[]> {
+    const day = parseLocalDate(date, business.timezone);
+    const schedules = await this.loadSchedules(
+      db,
+      business,
+      service,
+      staffId,
+      day.toMillis(),
+      day.plus({ days: 1 }).toMillis(),
+      excludeBookingId,
+    );
+    return computeDaySlots(
+      engineInput(business, service, schedules, now, date),
+    );
+  }
+
   /**
-   * Loads the schedules of the staff who can take the service (optionally one
-   * named staff member). Time off and bookings are fetched with a one-day
-   * margin, since a blocked range can run past the end of its day.
+   * Loads the schedules of the staff who can take the service, optionally one
+   * named member. Time off and bookings are fetched with a one-day margin
+   * because a blocked range can run past the end of its day.
    */
   async loadSchedules(
+    db: Db,
     business: Business,
     service: Service,
     staffId: string | undefined,
     rangeStart: number,
     rangeEnd: number,
+    excludeBookingId?: string,
   ): Promise<StaffSchedule[]> {
-    const staff = await this.prisma.staff.findMany({
-      where: {
-        businessId: business.id,
-        active: true,
-        services: { some: { serviceId: service.id } },
-        id: staffId,
-      },
+    const staff = await db.staff.findMany({
+      where: eligibleStaffWhere(business, service, staffId),
       include: {
         hours: true,
         timeOff: {
@@ -101,10 +147,11 @@ export class AvailabilityService {
       throw new NotFoundException('Staff member not found');
     }
 
-    const bookings = await this.prisma.booking.findMany({
+    const bookings = await db.booking.findMany({
       where: {
         staffId: { in: staff.map((member) => member.id) },
         status: BookingStatus.CONFIRMED,
+        id: excludeBookingId ? { not: excludeBookingId } : undefined,
         startsAt: { lt: new Date(rangeEnd + DAY_MS) },
         blockedUntil: { gt: new Date(rangeStart - DAY_MS) },
       },
@@ -129,6 +176,19 @@ export class AvailabilityService {
         ),
     }));
   }
+}
+
+function eligibleStaffWhere(
+  business: Business,
+  service: Service,
+  staffId: string | undefined,
+): Prisma.StaffWhereInput {
+  return {
+    businessId: business.id,
+    active: true,
+    services: { some: { serviceId: service.id } },
+    id: staffId,
+  };
 }
 
 function engineInput(

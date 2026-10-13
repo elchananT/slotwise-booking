@@ -57,7 +57,8 @@ export class PublicService {
   ): Promise<PublicAvailabilityView> {
     const business = await this.requireBusiness(slug);
     const service = await this.requireActiveService(business, query.serviceId);
-    const slots = await this.availability.slotsForDate(
+    const slots = await this.availability.slotsOnDay(
+      this.prisma,
       business,
       service,
       query.date,

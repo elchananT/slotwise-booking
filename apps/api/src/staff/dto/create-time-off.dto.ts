@@ -1,10 +1,11 @@
-import { IsDateString, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsInstant } from '../../common/validators/is-instant';
 
 export class CreateTimeOffDto {
-  @IsDateString()
+  @IsInstant()
   startsAt!: string;
 
-  @IsDateString()
+  @IsInstant()
   endsAt!: string;
 
   @IsOptional()
