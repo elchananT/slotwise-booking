@@ -89,3 +89,15 @@ Open questions for the supervisor:
 
 - Should a customer reschedule also write an EmailLog entry? The contract lists only confirmation and cancellation, so none is written.
 - Should the 2-hour window also apply to customer reschedules? It does here, as a conservative reading.
+
+## Dashboard and outbox
+
+`GET /dashboard` (`src/dashboard`), with the math in `dashboard.stats.ts` (unit tested):
+
+- `todayCount`: CONFIRMED bookings starting on the business-local day. `upcomingCount`: CONFIRMED bookings starting after now.
+- `revenueCentsLast30`: sum of the current price of COMPLETED bookings in the trailing 30 local days. Bookings do not store a price snapshot, so a later price change shifts history. This is a known limitation.
+- `bookingsByDay`: 30 entries, oldest first, ending today, counting non-cancelled bookings. Days with none show 0.
+- `topServices`: up to 5 services by non-cancelled bookings in the trailing 30 days, ties by name.
+- `utilizationByStaff`: for each active staff member, booked minutes over the same 30 days divided by working minutes from the weekly hours. Time off is not subtracted. Capped at 100 and reported as 0 when there are no working minutes.
+
+`GET /emails` (`src/emails`) is the owner's outbox: paginated, newest first, `{id,to,subject,body,createdAt}`.

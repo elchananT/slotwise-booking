@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { EmailsModule } from './emails/emails.module';
 import { PublicModule } from './public/public.module';
 import { BusinessModule } from './business/business.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,6 +25,8 @@ import { StaffModule } from './staff/staff.module';
     StaffModule,
     PublicModule,
     BookingsModule,
+    DashboardModule,
+    EmailsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
